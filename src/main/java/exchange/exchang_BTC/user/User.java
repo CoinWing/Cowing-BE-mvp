@@ -1,4 +1,4 @@
-package exchange.exchang_BTC.src.user.entity;
+package exchange.exchang_BTC.user;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,21 +7,21 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class UserEntity {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer uId;
+    private Long id;
+
+    private String email;
 
     private LocalDateTime createTime;
 
     @Column(precision = 20, scale = 8, nullable = false)
     private BigDecimal uHoldings;
-
 
 }
