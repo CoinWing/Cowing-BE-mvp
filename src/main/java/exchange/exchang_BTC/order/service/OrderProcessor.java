@@ -8,7 +8,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,11 +69,7 @@ public class OrderProcessor {
     private void processTrade(Order order) {
         tradeRepository.save(
                 Trade.builder()
-                        .marketCode(order.getMarketCode())
-                        .orderType(order.getOrderType())
-                        .orderPosition(order.getOrderPosition())
-                        .tradeQuantity(order.getTotalQuantity())
-                        .tradePrice(order.getTotalPrice())
+                        .orderUuid(order.getUuid())
                         .build()
         );
         log.info("Trade converted from order Is recorded: {}", order);
