@@ -43,15 +43,11 @@ public class Order {
     private BigDecimal totalQuantity;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false, updatable = false)
     private LocalDateTime orderRequestedAt;
 
     @PrePersist
     public void prePersist() {
         this.uuid = this.uuid == null ? UUID.randomUUID().toString() : this.uuid;
-        this.createdAt = this.createdAt == null ? LocalDateTime.now() : this.createdAt;
     }
 
     @Builder

@@ -1,7 +1,7 @@
 package exchange.exchang_BTC.order.service;
 
 import exchange.exchang_BTC.order.api.dto.limit.LimitOrderDto;
-import exchange.exchang_BTC.order.api.dto.market.MarketOrderBuyDto;
+import exchange.exchang_BTC.order.api.dto.market.MarketBuyOrderDto;
 import exchange.exchang_BTC.order.api.dto.market.MarketSellOrderDto;
 import exchange.exchang_BTC.order.domain.entity.Order;
 import exchange.exchang_BTC.order.domain.entity.OrderPosition;
@@ -21,8 +21,8 @@ public class OrderService {
     private final OrderQueue orderQueue;
     private final OrderRepository orderRepository;
 
-    public void requestMarketBuyOrder(MarketOrderBuyDto marketOrderBuyDto) {
-        Order order = toMarketBuyOrder(marketOrderBuyDto);
+    public void requestMarketBuyOrder(MarketBuyOrderDto marketBuyOrderDto) {
+        Order order = toMarketBuyOrder(marketBuyOrderDto);
         insertToOrderHistory(order);
         orderQueue.addOrder(order);
     }
@@ -39,7 +39,7 @@ public class OrderService {
         orderQueue.addOrder(order);
     }
 
-    private Order toMarketBuyOrder(MarketOrderBuyDto dto) {
+    private Order toMarketBuyOrder(MarketBuyOrderDto dto) {
         return Order.builder()
                 .marketCode(dto.marketCode())
                 .orderType(OrderType.MARKET)
