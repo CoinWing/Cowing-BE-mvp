@@ -70,11 +70,12 @@ public class OrderProcessor {
     private void processTrade(Order order) {
         tradeRepository.save(
                 Trade.builder()
+                        .orderUuid(order.getUuid())
                         .marketCode(order.getMarketCode())
                         .orderType(order.getOrderType())
                         .orderPosition(order.getOrderPosition())
                         .tradeQuantity(order.getTotalQuantity())
-                        .tradePrice(order.getTotalPrice())
+                        .tradePrice(realTimeOrderBook.getPrice(order.getMarketCode()).longValue())
                         .build()
         );
         log.info("Trade converted from order Is recorded: {}", order);
