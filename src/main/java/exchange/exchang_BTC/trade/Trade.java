@@ -45,7 +45,8 @@ public class Trade {
     }
 
     @Builder
-    public Trade(String marketCode, OrderType orderType, OrderPosition orderPosition, Long tradePrice, BigDecimal tradeQuantity) {
+    public Trade(String orderUuid, String marketCode, OrderType orderType, OrderPosition orderPosition, Long tradePrice, BigDecimal tradeQuantity) {
+        this.orderUuid = orderUuid;
         this.marketCode = marketCode;
         this.orderType = orderType;
         this.orderPosition = orderPosition;
