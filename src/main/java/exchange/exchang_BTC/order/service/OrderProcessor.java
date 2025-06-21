@@ -70,6 +70,11 @@ public class OrderProcessor {
         tradeRepository.save(
                 Trade.builder()
                         .orderUuid(order.getUuid())
+                        .marketCode(order.getMarketCode())
+                        .orderType(order.getOrderType())
+                        .orderPosition(order.getOrderPosition())
+                        .tradeQuantity(order.getTotalQuantity())
+                        .tradePrice(realTimeOrderBook.getPrice(order.getMarketCode()).longValue())
                         .build()
         );
         log.info("Trade converted from order Is recorded: {}", order);
