@@ -6,14 +6,14 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
-public record MarketOrderBuyDto(
+public record MarketBuyOrderDto(
         @JsonProperty("coin_ticker") @NotNull @NotBlank String coinTicker,
         @JsonProperty("position") @NotNull @NotBlank String position,
         @JsonProperty("total_price") @NotNull Integer totalPrice,
         @JsonProperty("market_code") @NotNull @NotBlank String marketCode,
         LocalDateTime orderRequestedAt
 ) {
-    public MarketOrderBuyDto {
+    public MarketBuyOrderDto {
         orderRequestedAt =LocalDateTime.now();
     }
 }

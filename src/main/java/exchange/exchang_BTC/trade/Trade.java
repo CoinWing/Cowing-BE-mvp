@@ -1,18 +1,14 @@
 package exchange.exchang_BTC.trade;
 
-import exchange.exchang_BTC.order.domain.entity.OrderPosition;
-import exchange.exchang_BTC.order.domain.entity.OrderType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Trade {
 
     @Id
@@ -21,20 +17,6 @@ public class Trade {
 
     @Column(nullable = false, name = "order_uuid")
     private String orderUuid;
-
-    private String marketCode;
-
-    @Enumerated(EnumType.STRING)
-    private OrderType orderType;
-
-    @Enumerated(EnumType.STRING)
-    private OrderPosition orderPosition;
-
-    @Column(nullable = false, name = "trade_price")
-    private Long tradePrice;
-
-    @Column(nullable = false, name = "trade_quantity")
-    private BigDecimal tradeQuantity;
 
     @Column(nullable = false)
     private LocalDateTime concludedAt;
@@ -52,5 +34,6 @@ public class Trade {
         this.orderPosition = orderPosition;
         this.tradePrice = tradePrice;
         this.tradeQuantity = tradeQuantity;
+
     }
 }

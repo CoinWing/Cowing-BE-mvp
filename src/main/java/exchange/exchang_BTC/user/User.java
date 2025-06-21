@@ -19,6 +19,10 @@ public class User {
 
     private String email;
 
+    private String password;
+
+    private String nickname;
+
     private LocalDateTime createTime;
 
     @Column(precision = 20, scale = 8, nullable = false)
