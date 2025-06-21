@@ -59,6 +59,7 @@ public class OrderService {
                 .totalQuantity(dto.totalQuantity())
                 .totalPrice(0L)
                 .orderPrice(0L)
+                .orderRequestedAt(LocalDateTime.now())
                 .build();
     }
 
