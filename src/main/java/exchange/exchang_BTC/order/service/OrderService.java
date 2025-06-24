@@ -8,9 +8,6 @@ import exchange.exchang_BTC.order.domain.entity.OrderPosition;
 import exchange.exchang_BTC.order.domain.entity.OrderType;
 import exchange.exchang_BTC.order.config.OrderQueue;
 import exchange.exchang_BTC.order.domain.repository.OrderRepository;
-import exchange.exchang_BTC.user.User;
-import exchange.exchang_BTC.user.UserRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +20,6 @@ public class OrderService {
 
     private final OrderQueue orderQueue;
     private final OrderRepository orderRepository;
-    private final UserRepository userRepository;
 
     public void requestMarketBuyOrder(MarketBuyOrderDto marketBuyOrderDto) {
         Order order = toMarketBuyOrder(marketBuyOrderDto);
@@ -79,16 +75,5 @@ public class OrderService {
 
     private void insertToOrderHistory(Order order) {
         orderRepository.save(order);
-    }
-
-
-    @PostConstruct
-    void createTestUser() {
-        User user = User.builder()
-                .email("test@example.com")
-                .password("password")
-                .nickname("Test User")
-                .build();
-        userRepository.save(user);
     }
 }
