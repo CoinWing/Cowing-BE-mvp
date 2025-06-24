@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RealTimeOrderBook {
     // Key: Market Code (e.g., "KRW-BTC"), Value: 현재가, 호가 등 정보 (지금은 단순화를 위해 Double로 현재가만 저장)
 
-    private final ConcurrentHashMap<String, Double> price = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, OrderbookDto> orderBook = new ConcurrentHashMap<>();
     private final RestTemplate restTemplate = new RestTemplate();
     private final List<String> marketCodes = List.of(
@@ -34,9 +33,6 @@ public class RealTimeOrderBook {
     );
     String markets = String.join(",", marketCodes);
 
-    public Double getPrice(String marketCode) {
-        return price.getOrDefault(marketCode, 1000.0);
-    }
 
     public OrderbookDto getOrderBook(String marketCode) {
         return orderBook.get(marketCode);
@@ -52,7 +48,6 @@ public class RealTimeOrderBook {
             if (response != null && response.length > 0) {
                 for (OrderbookDto dto : response) {
                     String market = dto.market();
-                    log.info("list {}", dto);
                     orderBook.put(market, dto);
                 }
             } else {

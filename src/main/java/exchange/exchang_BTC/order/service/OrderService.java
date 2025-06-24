@@ -59,6 +59,7 @@ public class OrderService {
                 .totalQuantity(dto.totalQuantity())
                 .totalPrice(0L)
                 .orderPrice(0L)
+                .orderRequestedAt(LocalDateTime.now())
                 .build();
     }
 
@@ -67,6 +68,7 @@ public class OrderService {
                 .marketCode(dto.marketCode())
                 .orderType(OrderType.LIMIT)
                 .orderPosition(OrderPosition.valueOf(dto.position().toUpperCase()))
+                .totalPrice(dto.totalOrderPrice().longValue())
                 .orderPrice(dto.orderPrice().longValue())
                 .totalQuantity(dto.orderQuantity())
                 .orderRequestedAt(LocalDateTime.now())
