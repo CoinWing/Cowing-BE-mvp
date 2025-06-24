@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.0'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'exchange'
@@ -27,8 +28,17 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok:1.18.30'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	implementation 'com.amazonaws.serverless:aws-serverless-java-container-springboot3:2.1.4'
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+shadowJar {
+	// 최종적으로 생성될 JAR 파일의 이름을 지정할 수 있습니다.
+	archiveFileName = "${project.name}.jar"
+	// `sam build`가 이 JAR를 사용하도록 `build` 태스크가 `shadowJar`에 의존하게 만듭니다.
+	dependsOn(bootJar) // bootJar의 manifest 정보를 활용하기 위해 의존성을 추가할 수 있습니다.
 }
+
+//tasks.named('test') {
+//	useJUnitPlatform()
+//}
