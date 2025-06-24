@@ -8,6 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Getter
+@Setter
 @Table(name = "order_history")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
