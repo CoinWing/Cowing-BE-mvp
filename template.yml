@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Spring Boot + AWS Lambda demo project
+
+Globals:
+  Api:
+    # API Gateway regional endpoints
+    EndpointConfiguration: REGIONAL
+
+Resources:
+  DemoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: exchange.exchang_BTC.test.LambdaHandler
+      Runtime: java21
+      CodeUri: .
+      Architectures:
+        - arm64
+      MemorySize: 2048
+      Policies: AWSLambdaBasicExecutionRole
+      Timeout: 60
+      SnapStart:
+        ApplyOn: PublishedVersions
+      AutoPublishAlias: prod
+      Events:
+        marketbuy:
+          Type: Api
+          Properties:
+            Path: /api/v1/orders/market/buy
+            Method: POST
+        marketsell:
+          Type: Api
+          Properties:
+            Path: /api/v1/orders/market/sell
+            Method: POST
+
+Outputs:
+  DemoApplicationApi:
+    Description: URL for application
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: DemoApplicationApi
