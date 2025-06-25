@@ -33,6 +33,11 @@ Resources:
           Properties:
             Path: /api/v1/orders/market/sell
             Method: POST
+        limitTransaction:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /api/v1/orders/limit
 
 Outputs:
   DemoApplicationApi:

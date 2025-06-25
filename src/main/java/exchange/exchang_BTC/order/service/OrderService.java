@@ -6,7 +6,7 @@ import exchange.exchang_BTC.order.api.dto.market.MarketSellOrderDto;
 import exchange.exchang_BTC.order.domain.entity.Order;
 import exchange.exchang_BTC.order.domain.entity.OrderPosition;
 import exchange.exchang_BTC.order.domain.entity.OrderType;
-import exchange.exchang_BTC.order.config.OrderQueue;
+import exchange.exchang_BTC.config.OrderQueue;
 import exchange.exchang_BTC.order.domain.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

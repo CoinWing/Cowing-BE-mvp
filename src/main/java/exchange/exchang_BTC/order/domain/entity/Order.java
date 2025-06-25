@@ -40,7 +40,7 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private Long totalPrice;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, precision = 32,scale = 8)
     private BigDecimal totalQuantity;
 
     @Column(nullable = false, updatable = false)

@@ -1,12 +1,12 @@
 package exchange.exchang_BTC.order.service;
 
+import exchange.exchang_BTC.config.OrderQueue;
 import exchange.exchang_BTC.order.api.dto.upbit.OrderbookDto;
 import exchange.exchang_BTC.order.api.dto.upbit.OrderbookUnitDto;
-import exchange.exchang_BTC.order.config.OrderQueue;
 import exchange.exchang_BTC.order.domain.entity.Order;
 import exchange.exchang_BTC.order.domain.entity.OrderPosition;
-import exchange.exchang_BTC.trade.Trade;
-import exchange.exchang_BTC.trade.TradeRepository;
+import exchange.exchang_BTC.order.domain.entity.Trade;
+import exchange.exchang_BTC.order.domain.repository.TradeRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,159 +45,162 @@ public class OrderProcessor {
         });
     }
 
-    private void processBuyOrder(Order order, List<OrderbookUnitDto> sortedUnits) {
-        BigDecimal remainingMoney = BigDecimal.valueOf(order.getTotalPrice());
+    private void executeMarketOrderProcessing(Order order, List<OrderbookUnitDto> sortedUnits) {
+
+        boolean isBuyOrder = order.getOrderPosition() == OrderPosition.BUY;
+        BigDecimal remaining = BigDecimal.ZERO;
         BigDecimal totalQuantity = BigDecimal.ZERO;
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        String reason;
 
-        // 나중에 포트폴리오에 총 구매액을 넣을 수 있게 추가
-        BigDecimal weightedTradePriceSum = BigDecimal.ZERO;
-        for (OrderbookUnitDto unit : sortedUnits) {
-            // 주문 금액 0되면 끝내기
-            if (remainingMoney.compareTo(BigDecimal.ZERO) <= 0) break;
-
-            BigDecimal currentPrice = BigDecimal.valueOf(unit.askPrice());
-            BigDecimal currentSize = BigDecimal.valueOf(unit.askSize());
-
-            // 구매 가격을 현재가로 나눠서 구매할 수 있는 수량을 계산한다.
-            BigDecimal possibleQuantity = remainingMoney.divide(currentPrice, 8, RoundingMode.DOWN);
-
-            // 매도 물량과, 구매 가능 수량 중 더 작은 쪽이 거래 수량이 된다.
-            BigDecimal tradeQuantity = possibleQuantity.min(currentSize);
-
-            // 주문 금액이 남긴 했는데 소수점 내림으로 0되는 경우는 끝내기
-            if (tradeQuantity.compareTo(BigDecimal.ZERO) <= 0) break;
-
-            // 거래 수량 * 현재가를 해서 얼마에 샀는지 계산
-            BigDecimal tradeAmount = tradeQuantity.multiply(currentPrice);
-
-            // 구매한 가격 만큼 주문 금액에서 뺀다
-            remainingMoney = remainingMoney.subtract(tradeAmount);
-
-            // 부분 체결된 양을 계속 저장해서 총 체결 수량을 계산한다
-            totalQuantity = totalQuantity.add(tradeQuantity);
-
-            //부분 체결된 가격을 계속 저장해서 총 구매액을 계산한다
-            weightedTradePriceSum = weightedTradePriceSum.add(tradeAmount);
-
-
-            order.setTotalQuantity(tradeQuantity);
-            order.setTotalPrice(tradeAmount.longValue());
-
-            processTrade(order);
+        if (isBuyOrder) {
+            remaining = BigDecimal.valueOf(order.getTotalPrice());
+            reason = OrderPosition.BUY.name();
+        } else {
+            remaining = order.getTotalQuantity();
+            reason = OrderPosition.SELL.name();
         }
-        if (remainingMoney.compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("거래 물량 부족으로 부분 체결됨. 지금까지 체결된 수량: {} 지금까지 체결된 금액: {}",totalQuantity, weightedTradePriceSum);
-        }
-    }
-
-    private void processSellOrder(Order order, List<OrderbookUnitDto> sortedUnits) {
-        BigDecimal remainingQuantity = order.getTotalQuantity(); // 남은 매도 수량
-        // 나중에 포트폴리오에 총 판매 수량을 넣을 수 있게 추가
-        BigDecimal totalQuantity = BigDecimal.ZERO;
-        BigDecimal weightedTradePriceSum = BigDecimal.ZERO;
 
         for (OrderbookUnitDto unit : sortedUnits) {
-            // 매도 수량만큼 주문 체결됐으면 끝내기
-            if (remainingQuantity.compareTo(BigDecimal.ZERO) <= 0) break;
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
 
-            BigDecimal currentPrice = BigDecimal.valueOf(unit.bidPrice());
-            BigDecimal currentSize = BigDecimal.valueOf(unit.bidSize());
+            BigDecimal currentPrice = isBuyOrder ? BigDecimal.valueOf(unit.askPrice()) : BigDecimal.valueOf(unit.bidPrice());
+            BigDecimal currentSize = isBuyOrder ? BigDecimal.valueOf(unit.askSize()) : BigDecimal.valueOf(unit.bidSize());
 
-            BigDecimal tradeQuantity = remainingQuantity.min(currentSize);
-
-            // 이것 역시 소수점 때문에 주문 가능 수량 0되면 끝내기
-            // 매도 주문은 자료형 변환 심하지 않아서 필요 없을 거 같기도 함. 혹시 모르니 추가
-            if (tradeQuantity.compareTo(BigDecimal.ZERO) <= 0) break;
-
-            //호가와 거래 수량 곱해서 거래된 금액 계산
-            BigDecimal tradeAmount = tradeQuantity.multiply(currentPrice);
-
-            //체결된만큼 remaining에서 빼기
-            remainingQuantity = remainingQuantity.subtract(tradeQuantity);
-
-            // 부분 체결된 양을 계속 저장해서 총 체결 수량을 계산한다
-            totalQuantity = totalQuantity.add(tradeQuantity);
-
-            //부분 체결된 가격을 계속 저장해서 총 구매액을 계산한다
-            weightedTradePriceSum = weightedTradePriceSum.add(tradeAmount);
-
-            // 체결 정보 기록. 부분 체결될시 체결 될때마다 기록
-            order.setTotalQuantity(tradeQuantity);
-            order.setTotalPrice(tradeAmount.longValue());
-
-            processTrade(order);
-        }
-        if (remainingQuantity.compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("거래 물량 부족으로 부분 체결됨. 지금까지 체결된 수량: {} 지금까지 체결된 금액: {}",totalQuantity, weightedTradePriceSum);
-        }
-
-    }
-
-
-        private void process (Order order){
-            log.info("Processing order: {}", order);
-            String marketCode = order.getMarketCode();
-
-            OrderbookDto orderbookDto = realTimeOrderBook.getOrderBook(order.getMarketCode());
-            List<OrderbookUnitDto> units = orderbookDto.orderbookUnitDtoList();
-
-            switch (order.getOrderType()) {
-                case MARKET:
-                    if (order.getOrderPosition() == OrderPosition.BUY) {
-                        // 매도 호가 기준 오름차순
-                        List<OrderbookUnitDto> sortedMarketAskUnits = units.stream().sorted(Comparator.comparingDouble(OrderbookUnitDto::askPrice)).toList();
-                        processBuyOrder(order, sortedMarketAskUnits);
-                    } else {
-                        // 매수 호가 기준 내림차순
-                        List<OrderbookUnitDto> sortedMarketBidUnits = units.stream()
-                                .sorted(Comparator.comparingDouble(OrderbookUnitDto::bidPrice).reversed())
-                                .toList();
-                        processSellOrder(order, sortedMarketBidUnits);
-
-                    }
-                    log.info("[Market Order Executed] ID: {}, Market: {}", order.getId(), marketCode);
-                    break;
-
-                case LIMIT:
-
-                    if (order.getOrderPosition() == OrderPosition.BUY) {
-
-                        // 매도 호가 중 사용자가 입력한 것보다 저렴한 것만 오름차순
-                        List<OrderbookUnitDto> sortedLimitAskUnits = units.stream()
-                                .filter(unit -> BigDecimal.valueOf(unit.askPrice()).compareTo(BigDecimal.valueOf(order.getOrderPrice())) <= 0) // 지정가 이하만
-                                .sorted(Comparator.comparingDouble(OrderbookUnitDto::askPrice)) // 오름차순 정렬
-                                .toList();
-                        processBuyOrder(order, sortedLimitAskUnits);
-
-
-                    } else {
-                        // 매수 호가 중 사용자가 입력한 것보다 비싼 것만 내림차순
-                        List<OrderbookUnitDto> sortedLimitBidUnits = units.stream()
-                                .filter(unit -> BigDecimal.valueOf(unit.bidPrice()).compareTo(BigDecimal.valueOf(order.getOrderPrice())) >= 0) // 지정가 이상만
-                                .sorted(Comparator.comparingDouble(OrderbookUnitDto::bidPrice).reversed()) // 높은 가격부터 정렬
-                                .toList();
-                        processSellOrder(order, sortedLimitBidUnits);
-
-                    }
-                    log.info("[Market Order Executed] ID: {}, Market: {}", order.getId(), marketCode);
-                    break;
-
+            BigDecimal tradeQuantity;
+            if (isBuyOrder) {
+                if (currentPrice.compareTo(BigDecimal.ZERO) == 0) continue; // 0으로 나누기 방지
+                BigDecimal possibleQuantity = remaining.divide(currentPrice, 8, RoundingMode.DOWN);
+                tradeQuantity = possibleQuantity.min(currentSize);
+            } else {
+                tradeQuantity = remaining.min(currentSize);
             }
+
+            if (tradeQuantity.compareTo(BigDecimal.ZERO) <= 0) break;
+
+            BigDecimal tradeAmount = tradeQuantity.multiply(currentPrice);
+
+            remaining = isBuyOrder ? remaining.subtract(tradeAmount) : remaining.subtract(tradeQuantity);
+            totalQuantity = totalQuantity.add(tradeQuantity);
+            totalPrice = totalPrice.add(tradeAmount);
+
+            processTrade(order, tradeQuantity, tradeAmount);
         }
 
-
-        private void processTrade (Order order){
-            tradeRepository.save(
-                    Trade.builder()
-                            .orderUuid(order.getUuid())
-                            .marketCode(order.getMarketCode())
-                            .orderType(order.getOrderType())
-                            .orderPosition(order.getOrderPosition())
-                            .tradeQuantity(order.getTotalQuantity())
-                            .tradePrice(order.getTotalPrice())
-                            .build()
-            );
-            log.info("Trade converted from order Is recorded: {}", order);
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            log.warn("{} 거래 물량 부족으로 부분 체결됨. 지금까지 체결된 수량: {} 지금까지 체결된 금액: {}",
+                    reason, totalQuantity, totalPrice);
+        } else {
+            log.info("{} 거래 완료. 총 체결 수량: {}, 총 체결 금액: {}", reason, totalQuantity, totalPrice);
         }
-
     }
+
+    //지정가 매매는 주문 요청 내역(주문 가격, 수량)과 정확히 일치하지 않으면 채결할 수 없다.
+    private void executeLimitOrderProcessing(Order order, List<OrderbookUnitDto> sortedUnits) {
+        boolean isBuyOrder = order.getOrderPosition() == OrderPosition.BUY;
+        BigDecimal remaining = order.getTotalQuantity();
+        BigDecimal totalFilledQuantity = BigDecimal.ZERO;
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        BigDecimal lastPrice = BigDecimal.ZERO;
+
+        for (OrderbookUnitDto unit : sortedUnits) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+            BigDecimal price = isBuyOrder
+                    ? BigDecimal.valueOf(unit.askPrice())
+                    : BigDecimal.valueOf(unit.bidPrice());
+            if (isBuyOrder && price.compareTo(BigDecimal.valueOf(order.getOrderPrice())) > 0) break;
+            if (!isBuyOrder && price.compareTo(BigDecimal.valueOf(order.getOrderPrice())) < 0) break;
+
+            BigDecimal size = isBuyOrder
+                    ? BigDecimal.valueOf(unit.askSize())
+                    : BigDecimal.valueOf(unit.bidSize());
+            BigDecimal tradeQuantity = remaining.min(size);
+            BigDecimal tradeAmount = tradeQuantity.multiply(price);
+
+            remaining = remaining.subtract(tradeQuantity);
+            totalFilledQuantity = totalFilledQuantity.add(tradeQuantity);
+            totalPrice = totalPrice.add(tradeAmount);
+            lastPrice = price;
+
+            processTrade(order, tradeQuantity, tradeAmount);
+        }
+
+        if (remaining.compareTo(BigDecimal.ZERO) > 0 && lastPrice.compareTo(BigDecimal.ZERO) > 0) {
+            // 남은 수량을 마지막 체결 가격으로 가정 체결
+            BigDecimal assumedAmount = remaining.multiply(lastPrice);
+            totalFilledQuantity = totalFilledQuantity.add(remaining);
+            totalPrice = totalPrice.add(assumedAmount);
+            processTrade(order, remaining, assumedAmount);
+            remaining = BigDecimal.ZERO;
+            log.info("잔여 수량 {}를 마지막 가격 {}으로 가정 체결함", remaining, lastPrice);
+        }
+
+        log.info("지정가 주문 체결 완료. OrderId={}, 체결수량={}, 체결금액={}",
+                order.getId(), totalFilledQuantity, totalPrice);
+    }
+
+    private void process (Order order){
+        log.info("Processing order: {}", order);
+        String marketCode = order.getMarketCode();
+
+        OrderbookDto orderbookDto = realTimeOrderBook.getOrderBook(order.getMarketCode());
+        List<OrderbookUnitDto> units = orderbookDto.orderbookUnitDtoList();
+
+        switch (order.getOrderType()) {
+            case MARKET:
+                if (order.getOrderPosition() == OrderPosition.BUY) {
+                    // 매도 호가 기준 오름차순
+                    List<OrderbookUnitDto> sortedMarketAskUnits = units.stream().sorted(Comparator.comparingDouble(OrderbookUnitDto::askPrice)).toList();
+                    executeMarketOrderProcessing(order, sortedMarketAskUnits);
+                } else {
+                    // 매수 호가 기준 내림차순
+                    List<OrderbookUnitDto> sortedMarketBidUnits = units.stream()
+                            .sorted(Comparator.comparingDouble(OrderbookUnitDto::bidPrice).reversed())
+                            .toList();
+                    executeMarketOrderProcessing(order, sortedMarketBidUnits);
+                }
+                log.info("[Market Order Executed] ID: {}, Market: {}", order.getId(), marketCode);
+                break;
+
+            case LIMIT:
+
+                if (order.getOrderPosition() == OrderPosition.BUY) {
+                    // 매도 호가 중 사용자가 입력한 것보다 저렴한 것만 오름차순
+                    List<OrderbookUnitDto> sortedLimitAskUnits = units.stream()
+                            .filter(unit -> BigDecimal.valueOf(unit.askPrice()).compareTo(BigDecimal.valueOf(order.getOrderPrice())) <= 0) // 지정가 이하만
+                            .sorted(Comparator.comparingDouble(OrderbookUnitDto::askPrice)) // 오름차순 정렬
+                            .toList();
+                    executeLimitOrderProcessing(order, sortedLimitAskUnits);
+
+
+                } else {
+                    // 매수 호가 중 사용자가 입력한 것보다 비싼 것만 내림차순
+                    List<OrderbookUnitDto> sortedLimitBidUnits = units.stream()
+                            .filter(unit -> BigDecimal.valueOf(unit.bidPrice()).compareTo(BigDecimal.valueOf(order.getOrderPrice())) >= 0) // 지정가 이상만
+                            .sorted(Comparator.comparingDouble(OrderbookUnitDto::bidPrice).reversed()) // 높은 가격부터 정렬
+                            .toList();
+                    executeLimitOrderProcessing(order, sortedLimitBidUnits);
+
+                }
+                log.info("[Limit Order Executed] ID: {}, Limit: {}", order.getId(), marketCode);
+                break;
+
+        }
+    }
+
+
+    private void processTrade (Order order, BigDecimal tradeQuantity, BigDecimal tradePrice){
+        tradeRepository.save(
+                Trade.builder()
+                        .orderUuid(order.getUuid())
+                        .marketCode(order.getMarketCode())
+                        .orderType(order.getOrderType())
+                        .orderPosition(order.getOrderPosition())
+                        .tradeQuantity(tradeQuantity)
+                        .tradePrice(tradePrice.longValue())
+                        .build()
+        );
+        log.info("Trade converted from order Is recorded: {}", order);
+    }
+
+}

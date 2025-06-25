@@ -1,4 +1,4 @@
-package exchange.exchang_BTC.order.config;
+package exchange.exchang_BTC.config;
 
 import exchange.exchang_BTC.order.domain.entity.Order;
 import org.springframework.stereotype.Component;

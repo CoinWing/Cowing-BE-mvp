@@ -1,7 +1,5 @@
-package exchange.exchang_BTC.trade;
+package exchange.exchang_BTC.order.domain.entity;
 
-import exchange.exchang_BTC.order.domain.entity.OrderPosition;
-import exchange.exchang_BTC.order.domain.entity.OrderType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
